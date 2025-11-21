@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "451101672736",
+    "project_id": "proyecto-nuclear-kotlin",
+    "storage_bucket": "proyecto-nuclear-kotlin.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:451101672736:android:b688af4548844b291d8345",
+        "android_client_info": {
+          "package_name": "com.apps_moviles.proyecto_nuclear_kotlin"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDRlvpGsiNoTwmokxjRMLpNS3TD4QYA9As"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
