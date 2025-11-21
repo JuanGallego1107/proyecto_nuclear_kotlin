@@ -43,7 +43,7 @@ fun HomeScreen(
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
-    // ✔️ LISTA AMPLIADA DE PRODUCTOS
+    // LISTA DE PRODUCTOS
     val sampleProducts = listOf(
         Product("Cálculo I - Stewart", "Libros", "Juan P.",
             "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f", "Disponible"),
@@ -132,7 +132,7 @@ fun HomeScreen(
                     .padding(16.dp)
             ) {
 
-                // 🔍 BUSCADOR
+                // BUSCADOR
                 item {
                     OutlinedTextField(
                         value = "",
@@ -149,7 +149,7 @@ fun HomeScreen(
                     Spacer(Modifier.height(20.dp))
                 }
 
-                // 🌟 CATEGORÍAS
+                // CATEGORÍAS
                 item {
                     Text("Categorías populares", fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(10.dp))
@@ -176,7 +176,7 @@ fun HomeScreen(
                     Spacer(Modifier.height(20.dp))
                 }
 
-                // 🛍️ PRODUCTOS
+                // PRODUCTOS
                 item {
                     Text("Artículos recientes", fontWeight = FontWeight.Bold)
                     Spacer(Modifier.height(16.dp))

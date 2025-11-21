@@ -59,7 +59,7 @@ fun DetailScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
 
-            // 🔶 Imagen grande
+            // Imagen grande
             item {
                 AsyncImage(
                     model = product.imageUrl,
@@ -72,7 +72,7 @@ fun DetailScreen(
                 )
             }
 
-            // 🔶 Card de categoría + título
+            // Card de categoría + título
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -97,7 +97,7 @@ fun DetailScreen(
                 }
             }
 
-            // 🔶 Descripción
+            // Descripción
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -115,7 +115,7 @@ fun DetailScreen(
                 }
             }
 
-            // 🔶 Ubicación
+            // Ubicación
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -130,7 +130,7 @@ fun DetailScreen(
                 }
             }
 
-            // 🔶 Información del oferente
+            // Información del oferente
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -166,7 +166,7 @@ fun DetailScreen(
             item { Spacer(Modifier.height(80.dp)) }
         }
 
-        // 🔶 Botón flotante abajo
+        // Botón flotante abajo
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -188,7 +188,7 @@ fun DetailScreen(
             }
         }
 
-        // 🔶 Pop-up de confirmación
+        // Pop-up de confirmación
         if (showDialog) {
             AlertDialog(
                 onDismissRequest = { showDialog = false },

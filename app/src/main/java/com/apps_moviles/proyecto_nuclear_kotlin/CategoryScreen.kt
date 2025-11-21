@@ -28,7 +28,7 @@ fun CategoryScreen(
     val filters = listOf("Todos", "Disponibles", "En negociación")
     var selectedFilter by remember { mutableStateOf("Todos") }
 
-    // 🔥 DATOS OPTIMIZADOS CON IMÁGENES REALES
+    // LISTADO DE DATOS
     val allProducts = listOf(
         Product("Cálculo I - Stewart", "Libros", "Juan P.",
             "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f", "Disponible"),
@@ -49,12 +49,12 @@ fun CategoryScreen(
             "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab", "En negociación")
     )
 
-    // 📌 FILTRO POR CATEGORÍA
+    // FILTRO POR CATEGORÍA
     val categoryFiltered = allProducts.filter {
         it.category == categoryName || categoryName == "Todos"
     }
 
-    // 📌 FILTRO POR ESTADO
+    // FILTRO POR ESTADO
     val products = categoryFiltered.filter {
         selectedFilter == "Todos" || it.status == selectedFilter
     }
@@ -101,7 +101,7 @@ fun CategoryScreen(
                 .padding(16.dp)
         ) {
 
-            // 🔶 CHIPS DE FILTRO
+            // CHIPS DE FILTRO
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     filters.forEach { filter ->
@@ -115,7 +115,7 @@ fun CategoryScreen(
                 Spacer(Modifier.height(16.dp))
             }
 
-            // 🔶 INFORMACIÓN DE RESULTADOS
+            // INFORMACIÓN DE RESULTADOS
             item {
                 Text(
                     "${products.size} artículos encontrados",
@@ -124,7 +124,7 @@ fun CategoryScreen(
                 Spacer(Modifier.height(16.dp))
             }
 
-            // 🔶 LISTA DE ARTÍCULOS
+            // LISTA DE ARTÍCULOS
             items(products) { item ->
                 ProductCardHome(item, onClick = { onProductClick(item) })
                 Spacer(Modifier.height(16.dp))
