@@ -20,7 +20,7 @@ interface ItemDao {
     suspend fun getItemsById(id: Int): ItemWithRelations?
 
     @Transaction
-    @Query("SELECT * FROM items WHERE user_id != :userId")
+    @Query("SELECT * FROM items WHERE user_id != :userId AND state_id = 1")
     suspend fun getAllItems(userId: Int): List<ItemWithRelations>
 
     @Transaction
@@ -28,6 +28,6 @@ interface ItemDao {
     suspend fun getItemsByUser(userId: Int): List<ItemWithRelations>
 
     @Transaction
-    @Query("SELECT * FROM items WHERE category = :category AND user_id != :userId")
+    @Query("SELECT * FROM items WHERE category = :category AND user_id != :userId AND state_id = 1")
     suspend fun getItemsByCategory(category: String, userId: Int): List<ItemWithRelations>
 }

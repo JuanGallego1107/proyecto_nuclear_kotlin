@@ -31,7 +31,7 @@ fun PublishedItemsScreen(
     val items = viewModel.items.collectAsState()
 
     // ESTADOS DISPONIBLES PARA FILTRAR
-    val estados = listOf("Todos", "Publicado", "Entregado", "Cancelado")
+    val estados = listOf("Todos", "Publicado", "Entregado")
     var selectedEstado by remember { mutableStateOf("Todos") }
 
     Scaffold(
@@ -63,11 +63,12 @@ fun PublishedItemsScreen(
 
             Spacer(modifier = Modifier.height(6.dp))
 
+            var expanded by remember { mutableStateOf(false) }
+
             ExposedDropdownMenuBox(
-                expanded = false,
-                onExpandedChange = { }
+                expanded = expanded,
+                onExpandedChange = { expanded = !expanded }
             ) {
-                var expanded by remember { mutableStateOf(false) }
 
                 OutlinedTextField(
                     value = selectedEstado,

@@ -55,6 +55,13 @@ class InteractionViewModel(
         }
     }
 
+    fun completeInteraction(id: Int, itemId: Int) {
+        viewModelScope.launch {
+            repository.markInteraction(id,itemId)
+            loadById(selectedInteraction.value?.interaction?.id ?: 1)
+        }
+    }
+
     class InteractionViewModelFactory(
         private val repository: InteractionRepository,
         private val prefs: UserPreferences

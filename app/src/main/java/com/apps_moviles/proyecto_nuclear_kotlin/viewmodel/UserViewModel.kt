@@ -25,6 +25,12 @@ class UserViewModel(private val repository: UserRepository, private val prefs: U
         null
     )
 
+    val loggedUserName = prefs.userFullname.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5000),
+        null
+    )
+
     private val _loginState = MutableStateFlow<LoginState>(LoginState.Idle)
     val loginState: StateFlow<LoginState> get() = _loginState
 
@@ -45,7 +51,7 @@ class UserViewModel(private val repository: UserRepository, private val prefs: U
             val user = repository.login(email, password)
 
             _loginState.value = if (user != null) {
-                prefs.saveUserId(user.id)
+                prefs.saveUser(user.id, user.fullName)
                 LoginState.Success(user)
             } else {
                 LoginState.Error("Credenciales incorrectas")
@@ -67,7 +73,7 @@ class UserViewModel(private val repository: UserRepository, private val prefs: U
 
     fun clearLoggedUser() {
         viewModelScope.launch {
-            prefs.clearUserId()
+            prefs.clearUser()
             _loginState.value = LoginState.Idle
             _loginResult.value = null
         }

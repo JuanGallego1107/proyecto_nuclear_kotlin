@@ -168,7 +168,7 @@ fun FullScreenPublishModal(itemViewModel: ItemViewModel, onClose: () -> Unit) {
                 OutlinedTextField(
                     value = address,
                     onValueChange = { address = it },
-                    label = { Text("Sede*") },
+                    label = { Text("Sede/Ubicación*") },
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -195,7 +195,7 @@ fun FullScreenPublishModal(itemViewModel: ItemViewModel, onClose: () -> Unit) {
                         if (title.isBlank()) errors.add("El título es obligatorio.")
                         if (description.isBlank()) errors.add("La descripción es obligatoria.")
                         if (category.isBlank()) errors.add("Debes seleccionar una categoría.")
-                        if (address.isBlank()) errors.add("La sede es obligatoria.")
+                        if (address.isBlank()) errors.add("La sede/ubicación es obligatoria.")
                         if (publicationType == null) errors.add("Debes seleccionar un tipo de publicación.")
                         if (savedImagePath.isNullOrBlank()) errors.add("Debes agregar una foto.")
 

@@ -22,8 +22,11 @@ fun NavigationWrapper(
     // Leer userId desde el UserViewModel
     val userId by userViewModel.loggedUserId.collectAsState(initial = null)
 
+    // Leer userFullName del UserViewModel
+    val fullname by userViewModel.loggedUserName.collectAsState(initial = "")
+
     // Elegir pantalla de inicio según si hay usuario logueado o no
-    val startDestination = if (userId != null) Home(name = "Usuario") else Login
+    val startDestination = if (userId != null) Home(name = fullname ?: "Usuario") else Login
 
     NavHost(
         navController = navController,

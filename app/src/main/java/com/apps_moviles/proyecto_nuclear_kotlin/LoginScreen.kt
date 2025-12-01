@@ -183,12 +183,16 @@ fun LoginScreen(userViewModel: UserViewModel, onLoginSuccess: (String) -> Unit) 
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            Row {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
                 Text(text = "¿No tienes cuenta?", fontSize = 14.sp)
                 Text(
-                    text = "Crear cuenta",
+                    text = "Comunícate con la coordinación de tu facultad",
+                    fontSize = 14.sp,
                     color = Color(0xFF0D3B66),
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Medium,
                     modifier = Modifier
                         .padding(start = 6.dp)
                         .clickable { }

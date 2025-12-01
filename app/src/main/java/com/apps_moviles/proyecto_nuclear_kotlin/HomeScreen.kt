@@ -299,8 +299,8 @@ fun ProductCardHome(item: ItemWithRelations, onClick: () -> Unit) {
 @Composable
 fun StatusChip(status: String) {
     val color = when (status) {
-        "Publicado" -> Color(0xFF2ECC71)
-        "Entregado" -> Color(0xFFF4B400)
+        "Publicado" -> Color.Blue
+        "Entregado" -> Color(0xFF00913f)
         else -> Color.Gray
     }
 

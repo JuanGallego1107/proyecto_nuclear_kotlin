@@ -1,5 +1,6 @@
 package com.apps_moviles.proyecto_nuclear_kotlin
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -18,15 +19,12 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.sp
 import com.apps_moviles.proyecto_nuclear_kotlin.model.Interaction
-import com.apps_moviles.proyecto_nuclear_kotlin.model.InteractionWithRelations
 import com.apps_moviles.proyecto_nuclear_kotlin.model.ItemInteractionRelations
 import com.apps_moviles.proyecto_nuclear_kotlin.viewmodel.InteractionViewModel
 import com.apps_moviles.proyecto_nuclear_kotlin.viewmodel.ItemViewModel
@@ -77,6 +75,18 @@ fun DetailScreen(
     val state = itemWithRelations!!.state
     val interactions = itemWithRelations!!.interactions
     val publicationType = itemWithRelations!!.publicationType
+
+    fun hasUserInteracted(userId: Int?, interactions: List<ItemInteractionRelations>): Boolean {
+        // Si userId es null, retornamos false
+        if (userId == null) return false
+
+        // Recorremos las interacciones y vemos si alguna coincide con el userId
+        return interactions.any { it.user.id == userId }
+    }
+
+    val userHasInteracted = hasUserInteracted(userId, interactions)
+
+    //Log.i("USUARIO", userHasInteracted.toString());
 
     Scaffold(
         topBar = {
@@ -195,7 +205,7 @@ fun DetailScreen(
                     elevation = CardDefaults.cardElevation(4.dp)
                 ) {
                     Column(Modifier.padding(16.dp)) {
-                        Text("Sede 📍", fontWeight = FontWeight.Bold)
+                        Text("Sede/Ubicación 📍", fontWeight = FontWeight.Bold)
                         Spacer(Modifier.height(6.dp))
                         Text(item.address)
                     }
@@ -237,6 +247,7 @@ fun DetailScreen(
                 }
             }
 
+            // Listado de interacciones activas para el oferente
             if(user.id == userId) {
                 item {
                     Text(
@@ -291,8 +302,8 @@ fun DetailScreen(
 
                                 // Chip para el estado con color
                                 val stateColor = when (interaction.state.name) {
-                                    "Completado" -> Color(0xFF2ECC71)
-                                    "Sin Completar" -> Color(0xFFF4B400)
+                                    "Completado" -> Color(0xFF00913f)
+                                    "Sin completar" -> Color(0xFFF4B400)
                                     else ->  Color.LightGray
                                 }
 
@@ -320,16 +331,18 @@ fun DetailScreen(
                             }
 
                             // Trailing icon: check button
-                            IconButton(
-                                onClick = {
-                                    showConfirmDialog = true to interaction
+                            if(interaction.state.name == "En espera") {
+                                IconButton(
+                                    onClick = {
+                                        showConfirmDialog = true to interaction
+                                    }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = "Confirmar",
+                                        tint = Color(0xFF003D6A)
+                                    )
                                 }
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Check,
-                                    contentDescription = "Confirmar",
-                                    tint = Color(0xFF003D6A)
-                                )
                             }
                         }
                     }
@@ -339,8 +352,8 @@ fun DetailScreen(
             item { Spacer(Modifier.height(80.dp)) }
         }
 
-        // 🟦 Botón de solicitar
-        if(user.id != userId) {
+        // Botón de solicitar
+        if(user.id != userId && !userHasInteracted) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -363,7 +376,66 @@ fun DetailScreen(
             }
         }
 
-        // AlertDialog de confirmación
+        if (userHasInteracted) {
+
+            // Obtener la interacción del usuario
+            val userInteraction = interactions.firstOrNull { it.user.id == userId }
+            val interactionStateName = userInteraction?.state?.name ?: "Sin información"
+
+            val color = when (interactionStateName) {
+                "Completado" -> Color(0xFF00913f)
+                "Sin completar" -> Color(0xFFF4B400)
+                else ->  Color.LightGray
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp)
+                    .navigationBarsPadding(),
+                contentAlignment = Alignment.BottomCenter
+            ) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 2.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+
+                        Text(
+                            text = "Ya has interactuado con este artículo",
+                            color = Color.Gray,
+                            fontSize = 16.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = color,
+                            tonalElevation = 2.dp
+                        ) {
+                            Text(
+                                text = interactionStateName,
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                                color = Color.Black,
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // AlertDialog de confirmación para completar intercambio
         if (showConfirmDialog.first) {
             val interaction = showConfirmDialog.second
             AlertDialog(
@@ -372,7 +444,10 @@ fun DetailScreen(
                 text = { Text("¿Estás seguro que deseas dar como completado el ${publicationType.name} de tú articulo con ${interaction?.user?.fullName}?") },
                 confirmButton = {
                     Button(onClick = {
-                        // Aquí puedes agregar la acción de confirmación
+                        if(interaction?.interaction?.id != null){
+                            interactionViewModel.completeInteraction(interaction.interaction.id, item.id)
+                            viewModel.loadItemById(itemId)
+                        }
                         showConfirmDialog = false to null
                     }) {
                         Text("Confirmar")
@@ -387,7 +462,7 @@ fun DetailScreen(
         }
 
         // 🟩 Pop-up de confirmación
-        // Modal de comentario
+        // Modal de comentario para enviar solicitud/interes en el articulo
         if (showDialog) {
             AlertDialog(
                 onDismissRequest = { showDialog = false },
@@ -447,8 +522,8 @@ fun DetailScreen(
 fun ChipSmall(text: String) {
 
     val color = when (text) {
-        "Publicado" -> Color(0xFF2ECC71)
-        "Entregado" -> Color(0xFFF4B400)
+        "Publicado" -> Color.Blue
+        "Entregado" -> Color(0xFF00913f)
         else -> Color.Black.copy(alpha = 0.6f)
     }
 

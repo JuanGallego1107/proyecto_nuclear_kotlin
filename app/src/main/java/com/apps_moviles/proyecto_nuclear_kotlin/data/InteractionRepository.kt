@@ -22,4 +22,8 @@ class InteractionRepository(private val dao: InteractionDao) {
 
     suspend fun getByUserId(userId: Int): List<InteractionWithRelations> =
         dao.getByUserId(userId)
+
+    suspend fun markInteraction(id: Int, itemId: Int) {
+        dao.updateStates(id, itemId)
+    }
 }

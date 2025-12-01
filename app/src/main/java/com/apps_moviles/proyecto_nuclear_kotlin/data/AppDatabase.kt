@@ -19,7 +19,7 @@ import kotlinx.coroutines.launch
 @Database(
     entities = [User::class, ItemState::class, PublicationType::class, Item::class, InteractionState::class, Interaction::class],
     // views = [ItemWithInteractionsView::class],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -139,15 +139,15 @@ abstract class AppDatabase : RoomDatabase() {
                     )
                 )
 
-                INSTANCE?.itemStateDao()?.insert(
-                    ItemState(
+                INSTANCE?.interactionsStateDao()?.insert(
+                    InteractionState(
                         id = 2,
                         name = "Completado"
                     )
                 )
 
-                INSTANCE?.itemStateDao()?.insert(
-                    ItemState(
+                INSTANCE?.interactionsStateDao()?.insert(
+                    InteractionState(
                         id = 3,
                         name = "Sin completar"
                     )
