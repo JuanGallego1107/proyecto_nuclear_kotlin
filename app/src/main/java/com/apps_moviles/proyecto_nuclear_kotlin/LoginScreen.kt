@@ -22,19 +22,36 @@ import androidx.compose.ui.text.input.*
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.apps_moviles.proyecto_nuclear_kotlin.viewmodel.LoginState
+import com.apps_moviles.proyecto_nuclear_kotlin.viewmodel.UserViewModel
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.firestore
 
 @OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-fun LoginScreen(onLoginSuccess: (String) -> Unit) {
+fun LoginScreen(userViewModel: UserViewModel, onLoginSuccess: (String) -> Unit) {
 
     val userName = remember { mutableStateOf("") }
     val password = remember { mutableStateOf("") }
     val showPassword = remember { mutableStateOf(false) }
     val context = LocalContext.current
-    val dbFirebase = Firebase.firestore
+
+    val loginState by userViewModel.loginState.collectAsState()
+
+    LaunchedEffect(loginState) {
+        when (loginState) {
+            is LoginState.Success -> {
+                val user = (loginState as LoginState.Success).user
+                Toast.makeText(context, "Inicio exitoso", Toast.LENGTH_SHORT).show()
+                onLoginSuccess(user.fullName)
+            }
+            is LoginState.Error -> {
+                Toast.makeText(context, (loginState as LoginState.Error).message, Toast.LENGTH_SHORT).show()
+            }
+            else -> {}
+        }
+    }
 
     // Fondo degradado suave
     val gradientBrush = Brush.verticalGradient(
@@ -53,7 +70,7 @@ fun LoginScreen(onLoginSuccess: (String) -> Unit) {
                 .padding(padding)
                 .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center  // <<---- CENTRADO REAL
+            verticalArrangement = Arrangement.Center
         ) {
 
             // Icono ecológico dentro del círculo
@@ -133,22 +150,10 @@ fun LoginScreen(onLoginSuccess: (String) -> Unit) {
                     if (userName.value.isBlank() || password.value.isBlank()) {
                         Toast.makeText(context, "Por favor ingrese sus credenciales", Toast.LENGTH_SHORT).show()
                     } else {
-                        dbFirebase.collection("usuarios")
-                            .document(userName.value)
-                            .get()
-                            .addOnSuccessListener { usuario ->
-                                if (usuario.exists()) {
-                                    val pwd = usuario.getString("password")
-                                    if (pwd == password.value) {
-                                        Toast.makeText(context, "Inicio exitoso", Toast.LENGTH_SHORT).show()
-                                        onLoginSuccess(userName.value)
-                                    } else {
-                                        Toast.makeText(context, "Contraseña incorrecta", Toast.LENGTH_SHORT).show()
-                                    }
-                                } else {
-                                    Toast.makeText(context, "Usuario no encontrado", Toast.LENGTH_SHORT).show()
-                                }
-                            }
+                        userViewModel.login(
+                            email = userName.value,
+                            password = password.value
+                        )
                     }
                 },
                 modifier = Modifier

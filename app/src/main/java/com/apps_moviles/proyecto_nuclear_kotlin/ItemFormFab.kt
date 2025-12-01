@@ -1,6 +1,9 @@
 package com.apps_moviles.proyecto_nuclear_kotlin
 
+import android.content.Context
+import android.graphics.Bitmap
 import android.net.Uri
+import android.provider.MediaStore
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -14,21 +17,28 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
+import com.apps_moviles.proyecto_nuclear_kotlin.model.Item
+import com.apps_moviles.proyecto_nuclear_kotlin.viewmodel.ItemViewModel
+import java.io.File
+import java.io.FileOutputStream
+import java.util.Date
 
 // ------------------------------------------------------------
 // FAB
 // ------------------------------------------------------------
 @Composable
-fun ItemFormFab() {
+fun ItemFormFab(
+    itemViewModel: ItemViewModel
+) {
     var showForm by remember { mutableStateOf(false) }
 
     FloatingActionButton(
@@ -40,30 +50,55 @@ fun ItemFormFab() {
     }
 
     if (showForm) {
-        FullScreenPublishModal { showForm = false }
+        FullScreenPublishModal(
+            itemViewModel = itemViewModel,
+            onClose = { showForm = false }
+        )
     }
 }
+
 
 // ------------------------------------------------------------
 // MODAL COMPLETO
 // ------------------------------------------------------------
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FullScreenPublishModal(onClose: () -> Unit) {
-    // Estados globales del formulario
+fun FullScreenPublishModal(itemViewModel: ItemViewModel, onClose: () -> Unit) {
+
+    val context = LocalContext.current
+
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
+    var address by remember { mutableStateOf("") }
     var category by remember { mutableStateOf("") }
-    var imageUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
+    var publicationType by remember { mutableStateOf<Int?>(null) }
+
+    var imageUri by remember { mutableStateOf<Uri?>(null) }
+    var savedImagePath by remember { mutableStateOf<String?>(null) }
 
     var showSuccess by remember { mutableStateOf(false) }
     var showErrors by remember { mutableStateOf(false) }
     var errorText by remember { mutableStateOf("") }
 
+    // Leer userId desde el UserViewModel
+    val userId by itemViewModel.loggedUserId.collectAsState(initial = null)
+
+    fun saveImageToInternalStorage(context: Context, bitmap: Bitmap, fileName: String): String {
+        val file = File(context.filesDir, "$fileName.jpg")
+
+        FileOutputStream(file).use { out ->
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+        }
+
+        return file.absolutePath
+    }
+
+
     ModalBottomSheet(
         onDismissRequest = onClose,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ) {
+
         Scaffold(
             topBar = {
                 TopAppBar(
@@ -79,27 +114,38 @@ fun FullScreenPublishModal(onClose: () -> Unit) {
                 )
             }
         ) { padding ->
+
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
                     .padding(padding)
-                    .verticalScroll(rememberScrollState())
                     .padding(16.dp)
+                    .verticalScroll(rememberScrollState())
             ) {
 
                 // --------------------------
-                // PICKER DE FOTOS FUNCIONAL
+                // PICKER SINGLE IMAGE
                 // --------------------------
                 ImagePickerSection(
-                    imageUris = imageUris,
-                    onImagesSelected = { imageUris = it }
+                    imageUri = imageUri,
+                    onImageSelected = { uri ->
+                        imageUri = uri
+
+                        // Convertimos URI → Bitmap → Internal Storage
+                        val bitmap = MediaStore.Images.Media.getBitmap(
+                            context.contentResolver,
+                            uri
+                        )
+
+                        savedImagePath = saveImageToInternalStorage(
+                            context,
+                            bitmap,
+                            "item_${System.currentTimeMillis()}"
+                        )
+                    }
                 )
 
                 Spacer(Modifier.height(20.dp))
 
-                // --------------------------
-                // TÍTULO
-                //---------------------------
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
@@ -109,9 +155,6 @@ fun FullScreenPublishModal(onClose: () -> Unit) {
 
                 Spacer(Modifier.height(12.dp))
 
-                // --------------------------
-                // DESCRIPCIÓN
-                // --------------------------
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
@@ -122,9 +165,15 @@ fun FullScreenPublishModal(onClose: () -> Unit) {
 
                 Spacer(Modifier.height(12.dp))
 
-                // --------------------------
-                // SELECTOR DE CATEGORÍA
-                // --------------------------
+                OutlinedTextField(
+                    value = address,
+                    onValueChange = { address = it },
+                    label = { Text("Sede*") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(Modifier.height(12.dp))
+
                 CategorySelector(
                     selected = category,
                     onSelected = { category = it }
@@ -132,9 +181,13 @@ fun FullScreenPublishModal(onClose: () -> Unit) {
 
                 Spacer(Modifier.height(25.dp))
 
-                // --------------------------
-                // BOTÓN GUARDAR
-                // --------------------------
+                PublicationTypeSelector(
+                    selectedId = publicationType,
+                    onSelected = { id -> publicationType = id }
+                )
+
+                Spacer(Modifier.height(25.dp))
+
                 Button(
                     onClick = {
                         val errors = mutableListOf<String>()
@@ -142,10 +195,28 @@ fun FullScreenPublishModal(onClose: () -> Unit) {
                         if (title.isBlank()) errors.add("El título es obligatorio.")
                         if (description.isBlank()) errors.add("La descripción es obligatoria.")
                         if (category.isBlank()) errors.add("Debes seleccionar una categoría.")
-                        if (imageUris.isEmpty()) errors.add("Debes agregar al menos una foto.")
+                        if (address.isBlank()) errors.add("La sede es obligatoria.")
+                        if (publicationType == null) errors.add("Debes seleccionar un tipo de publicación.")
+                        if (savedImagePath.isNullOrBlank()) errors.add("Debes agregar una foto.")
 
                         if (errors.isEmpty()) {
+
+                            itemViewModel.insert(
+                                Item(
+                                    title = title,
+                                    description = description,
+                                    category = category,
+                                    photoPath = savedImagePath,
+                                    userId = userId ?: 2,
+                                    stateId = 1,
+                                    publicationTypeId = publicationType ?: 1 ,
+                                    publicationDate = Date().toString(),
+                                    address = address
+                                )
+                            )
+
                             showSuccess = true
+
                         } else {
                             errorText = errors.joinToString("\n")
                             showErrors = true
@@ -162,25 +233,15 @@ fun FullScreenPublishModal(onClose: () -> Unit) {
                 Spacer(Modifier.height(20.dp))
             }
 
-            // --------------------------
-            // POPUP DE ERROR
-            // --------------------------
             if (showErrors) {
                 AlertDialog(
                     onDismissRequest = { showErrors = false },
-                    confirmButton = {
-                        TextButton(onClick = { showErrors = false }) {
-                            Text("OK")
-                        }
-                    },
+                    confirmButton = { TextButton(onClick = { showErrors = false }) { Text("OK") } },
                     title = { Text("Errores en el formulario") },
                     text = { Text(errorText) }
                 )
             }
 
-            // --------------------------
-            // POPUP DE ÉXITO
-            // --------------------------
             if (showSuccess) {
                 AlertDialog(
                     onDismissRequest = { showSuccess = false },
@@ -188,9 +249,7 @@ fun FullScreenPublishModal(onClose: () -> Unit) {
                         TextButton(onClick = {
                             showSuccess = false
                             onClose()
-                        }) {
-                            Text("OK")
-                        }
+                        }) { Text("OK") }
                     },
                     title = { Text("Publicado") },
                     text = { Text("El artículo se publicó correctamente.") }
@@ -200,43 +259,41 @@ fun FullScreenPublishModal(onClose: () -> Unit) {
     }
 }
 
+
 // ------------------------------------------------------------
 // COMPONENTE PICKER DE IMÁGENES
 // ------------------------------------------------------------
 @Composable
 fun ImagePickerSection(
-    imageUris: List<Uri>,
-    onImagesSelected: (List<Uri>) -> Unit,
-    maxSelection: Int = 4
+    imageUri: Uri?,
+    onImageSelected: (Uri) -> Unit
 ) {
     val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetMultipleContents()
-    ) { uris ->
-        val combined = (imageUris + uris).distinct().take(maxSelection)
-        onImagesSelected(combined)
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let { onImageSelected(it) }
     }
 
     Column {
-        Text("Fotos del artículo", style = MaterialTheme.typography.titleMedium)
+        Text("Foto del artículo", style = MaterialTheme.typography.titleMedium)
 
         Spacer(Modifier.height(8.dp))
 
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+
             Box(
                 modifier = Modifier
                     .size(90.dp)
                     .clip(RoundedCornerShape(12.dp))
                     .border(1.dp, Color.Gray, RoundedCornerShape(12.dp))
                     .background(Color(0xFFF5F5F5))
-                    .clickable(enabled = imageUris.size < maxSelection) {
-                        launcher.launch("image/*")
-                    },
+                    .clickable { launcher.launch("image/*") },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(Icons.Default.Add, contentDescription = "add photo")
             }
 
-            imageUris.forEach { uri ->
+            imageUri?.let { uri ->
                 Image(
                     painter = rememberAsyncImagePainter(uri),
                     contentDescription = null,
@@ -248,6 +305,7 @@ fun ImagePickerSection(
         }
     }
 }
+
 
 // ------------------------------------------------------------
 // SELECTOR DE CATEGORÍAS
@@ -288,6 +346,67 @@ fun CategorySelector(
                     text = { Text(option) },
                     onClick = {
                         onSelected(option)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+data class PublicationTypeOption(
+    val id: Int,
+    val name: String
+)
+
+
+// ------------------------------------------------------------
+// SELECTOR DE TIPO DE PUBLICACION
+// ------------------------------------------------------------
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PublicationTypeSelector(
+    selectedId: Int?,
+    onSelected: (Int) -> Unit
+) {
+    val types = listOf(
+        PublicationTypeOption(1, "Intercambio"),
+        PublicationTypeOption(2, "Donación"),
+        PublicationTypeOption(3, "Trueque")
+    )
+
+    var expanded by remember { mutableStateOf(false) }
+
+    // Texto visible según el ID seleccionado
+    val selectedName = types.find { it.id == selectedId }?.name ?: ""
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded }
+    ) {
+
+        OutlinedTextField(
+            value = selectedName,
+            onValueChange = {},
+            label = { Text("Tipo de publicación:*") },
+            readOnly = true,
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor(),
+            trailingIcon = {
+                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+            }
+        )
+
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            types.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option.name) },
+                    onClick = {
+                        onSelected(option.id)
                         expanded = false
                     }
                 )

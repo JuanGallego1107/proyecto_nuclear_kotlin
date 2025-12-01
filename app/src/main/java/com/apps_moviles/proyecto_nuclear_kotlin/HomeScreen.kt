@@ -8,90 +8,128 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.ExitToApp
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import com.apps_moviles.proyecto_nuclear_kotlin.data.ItemWithRelations
+import com.apps_moviles.proyecto_nuclear_kotlin.viewmodel.ItemViewModel
 import kotlinx.coroutines.launch
-
-// OBJETO PRODUCTO
-data class Product(
-    val name: String,
-    val category: String,
-    val owner: String,
-    val imageUrl: String,
-    val status: String
-)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
+    viewModel: ItemViewModel,
     username: String,
     onLogout: () -> Unit,
     onCategoryClick: (String) -> Unit,
-    onProductClick: (Product) -> Unit
+    onItemClick: (Int) -> Unit,
+    onOpenInterest: () -> Unit,
+    onOpenPublished: () -> Unit
 ) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
-    // LISTA DE PRODUCTOS
-    val sampleProducts = listOf(
-        Product("Cálculo I - Stewart", "Libros", "Juan P.",
-            "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f", "Disponible"),
+    // Leer userId desde el UserViewModel
+    val userId by viewModel.loggedUserId.collectAsState(initial = null)
 
-        Product("Física Universitaria", "Libros", "Felipe A.",
-            "https://images.unsplash.com/photo-1519682337058-a94d519337bc", "En negociación"),
+    // Cargar items al abrir la pantalla
+    LaunchedEffect(userId) {
+        viewModel.loadItems(userId)
+    }
 
-        Product("Uniforme Deportivo", "Uniformes", "Laura M.",
-            "https://images.unsplash.com/photo-1517849845537-4d257902454a", "Disponible"),
-
-        Product("Mouse Gamer Logitech", "Tecnología", "Daniel R.",
-            "https://images.unsplash.com/photo-1587202372775-e229f172b9d8", "Disponible"),
-
-        Product("Audífonos Sony WH1000XM3", "Tecnología", "Sara L.",
-            "https://images.unsplash.com/photo-1518444021407-2d306d9f0f9b", "En negociación"),
-
-        Product("Pulsera Negra Hombre", "Accesorios", "Valentina T.",
-            "https://images.unsplash.com/photo-1523275335684-37898b6baf30", "Disponible"),
-
-        Product("Chaqueta Azul Talla M", "Ropa", "Carlos F.",
-            "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab", "Disponible")
-    )
+    // Items reales desde Room
+    val items = viewModel.items.collectAsState()
 
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
-            ModalDrawerSheet {
-                Spacer(modifier = Modifier.height(40.dp))
+            ModalDrawerSheet(
+                drawerContainerColor = Color(0xFFF7F9FC)
+            ) {
+                Spacer(modifier = Modifier.height(30.dp))
 
-                Text(
-                    text = "Hola, $username",
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(16.dp)
+                // Encabezado del usuario
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        Icons.Default.AccountCircle,
+                        contentDescription = "user",
+                        tint = Color(0xFF003D6A),
+                        modifier = Modifier.size(48.dp)
+                    )
+
+                    Spacer(Modifier.width(12.dp))
+
+                    Column {
+                        Text(
+                            text = "Hola",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Color.Gray
+                        )
+                        Text(
+                            text = username,
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                        )
+                    }
+                }
+
+                Divider()
+
+                // ⭐ Artículos de interés
+                DrawerItem(
+                    text = "Artículos de interés",
+                    icon = Icons.Default.Favorite,
+                    onClick = {
+                        scope.launch { drawerState.close() }
+                        onOpenInterest()
+                    }
                 )
 
-                Button(
-                    onClick = onLogout,
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFD32F2F)
-                    )
-                ) {
-                    Text("Cerrar sesión", color = Color.White)
-                }
+                // 📦 Mis publicaciones
+                DrawerItem(
+                    text = "Mis publicaciones",
+                    icon = Icons.Default.List,
+                    onClick = {
+                        scope.launch { drawerState.close() }
+                        onOpenPublished()
+                    }
+                )
+
+                Divider(Modifier.padding(vertical = 12.dp))
+
+                // ❌ Cerrar sesión
+                DrawerItem(
+                    text = "Cerrar sesión",
+                    icon = Icons.Default.ExitToApp,
+                    textColor = Color(0xFFD32F2F),
+                    iconTint = Color(0xFFD32F2F),
+                    onClick = onLogout
+                )
             }
         }
+
     ) {
         Scaffold(
             topBar = {
@@ -121,7 +159,7 @@ fun HomeScreen(
                 )
             },
             floatingActionButton = {
-                ItemFormFab()
+                ItemFormFab(itemViewModel = viewModel)
             },
             floatingActionButtonPosition = FabPosition.End
         ) { paddingValues ->
@@ -182,8 +220,8 @@ fun HomeScreen(
                     Spacer(Modifier.height(16.dp))
                 }
 
-                items(sampleProducts) { product ->
-                    ProductCardHome(product, onClick = { onProductClick(product) })
+                items(items.value) { item ->
+                    ProductCardHome(item, onClick = { onItemClick(item.item.id) })
                     Spacer(Modifier.height(16.dp))
                 }
 
@@ -194,7 +232,40 @@ fun HomeScreen(
 }
 
 @Composable
-fun ProductCardHome(product: Product, onClick: () -> Unit) {
+fun DrawerItem(
+    text: String,
+    icon: ImageVector,
+    textColor: Color = Color.Black,
+    iconTint: Color = Color(0xFF003D6A),
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = iconTint,
+            modifier = Modifier.size(24.dp)
+        )
+
+        Spacer(Modifier.width(16.dp))
+
+        Text(
+            text,
+            style = MaterialTheme.typography.bodyLarge,
+            color = textColor
+        )
+    }
+}
+
+
+@Composable
+fun ProductCardHome(item: ItemWithRelations, onClick: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth()
             .clickable(onClick = onClick),
@@ -204,7 +275,7 @@ fun ProductCardHome(product: Product, onClick: () -> Unit) {
         Row(modifier = Modifier.padding(12.dp)) {
 
             AsyncImage(
-                model = product.imageUrl,
+                model = item.item.photoPath,
                 contentDescription = "product image",
                 modifier = Modifier
                     .size(70.dp)
@@ -215,12 +286,12 @@ fun ProductCardHome(product: Product, onClick: () -> Unit) {
             Spacer(Modifier.width(12.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                Text(product.name, fontWeight = FontWeight.Bold)
-                Text(product.category, color = Color.Gray)
-                Text(product.owner, color = Color.Gray)
+                Text(item.item.title, fontWeight = FontWeight.Bold)
+                Text(item.item.category, color = Color.Gray)
+                Text(item.user.fullName, color = Color.Gray)
             }
 
-            StatusChip(product.status)
+            StatusChip(item.state.name)
         }
     }
 }
@@ -228,8 +299,8 @@ fun ProductCardHome(product: Product, onClick: () -> Unit) {
 @Composable
 fun StatusChip(status: String) {
     val color = when (status) {
-        "Disponible" -> Color(0xFF2ECC71)
-        "En negociación" -> Color(0xFFF4B400)
+        "Publicado" -> Color(0xFF2ECC71)
+        "Entregado" -> Color(0xFFF4B400)
         else -> Color.Gray
     }
 

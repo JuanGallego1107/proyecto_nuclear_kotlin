@@ -1,27 +1,45 @@
 package com.apps_moviles.proyecto_nuclear_kotlin.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.apps_moviles.proyecto_nuclear_kotlin.*
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
+import androidx.compose.runtime.*
+import com.apps_moviles.proyecto_nuclear_kotlin.viewmodel.InteractionViewModel
+import com.apps_moviles.proyecto_nuclear_kotlin.viewmodel.ItemViewModel
+import com.apps_moviles.proyecto_nuclear_kotlin.viewmodel.UserViewModel
 
 @Composable
-fun NavigationWrapper() {
+fun NavigationWrapper(
+    userViewModel: UserViewModel,
+    itemViewModel: ItemViewModel,
+    interactionViewModel: InteractionViewModel
+) {
     val navController = rememberNavController()
+
+    // Leer userId desde el UserViewModel
+    val userId by userViewModel.loggedUserId.collectAsState(initial = null)
+
+    // Elegir pantalla de inicio según si hay usuario logueado o no
+    val startDestination = if (userId != null) Home(name = "Usuario") else Login
 
     NavHost(
         navController = navController,
-        startDestination = Login
+        startDestination = startDestination
     ) {
 
         // LOGIN
         composable<Login> {
-            LoginScreen { name ->
-                navController.navigate(Home(name = name))
-            }
+            LoginScreen(
+                onLoginSuccess = { name ->
+                    navController.navigate(Home(name = name)) {
+                        popUpTo(Login) { inclusive = true }
+                    }
+                },
+                userViewModel = userViewModel
+            )
         }
 
         // HOME
@@ -29,23 +47,25 @@ fun NavigationWrapper() {
             val name = backEntry.arguments?.getString("name") ?: "Usuario"
 
             HomeScreen(
+                viewModel = itemViewModel,
                 username = name,
                 onLogout = {
-                    navController.navigate(Login)
+                    userViewModel.clearLoggedUser()
+                    navController.navigate(Login) {
+                        popUpTo(Home(name = name)) { inclusive = true }
+                    }
                 },
                 onCategoryClick = { selectedCategory ->
                     navController.navigate(CategoryRoute(category = selectedCategory))
                 },
-                onProductClick = { product ->
-                    navController.navigate(
-                        DetailRoute(
-                            name = product.name,
-                            category = product.category,
-                            owner = product.owner,
-                            imageUrl = product.imageUrl,
-                            status = product.status
-                        )
-                    )
+                onItemClick = { itemId ->
+                    navController.navigate(DetailRoute(itemId = itemId))
+                },
+                onOpenInterest = {
+                    navController.navigate(InterestItems)
+                },
+                onOpenPublished = {
+                    navController.navigate(PublishedItems)
                 }
             )
         }
@@ -55,39 +75,47 @@ fun NavigationWrapper() {
             val categoryName = entry.arguments?.getString("category") ?: "Todos"
 
             CategoryScreen(
+                viewModel = itemViewModel,
                 categoryName = categoryName,
                 onBack = { navController.popBackStack() },
                 onOpenMenu = { },
-                onProductClick = { product ->
-                    navController.navigate(
-                        DetailRoute(
-                            name = product.name,
-                            category = product.category,
-                            owner = product.owner,
-                            imageUrl = product.imageUrl,
-                            status = product.status
-                        )
-                    )
+                onProductClick = { itemId ->
+                    navController.navigate(DetailRoute(itemId = itemId))
                 }
             )
         }
 
         // DETAIL SCREEN
         composable<DetailRoute> { entry ->
-            val args = entry.arguments!!
-
-            val product = Product(
-                name = args.getString("name")!!,
-                category = args.getString("category")!!,
-                owner = args.getString("owner")!!,
-                imageUrl = args.getString("imageUrl")!!,
-                status = args.getString("status")!!
-            )
+            val itemId = entry.arguments?.getInt("itemId") ?: 1
 
             DetailScreen(
-                product = product,
+                viewModel = itemViewModel,
+                interactionViewModel= interactionViewModel,
+                itemId = itemId,
                 onBack = { navController.popBackStack() }
             )
         }
+
+        // INTEREST ITEMS
+        composable<InterestItems> {
+            InterestItemsScreen(
+                interactionViewModel = interactionViewModel,
+                onBack = { navController.popBackStack() },
+                onInteractionClick = { },
+            )
+        }
+
+        // PUBLISHED ITEMS
+        composable<PublishedItems> {
+            PublishedItemsScreen(
+                viewModel = itemViewModel,
+                onItemClick = { itemId ->
+                    navController.navigate(DetailRoute(itemId = itemId))
+                },
+                onBack = { navController.popBackStack() },)
+        }
+
     }
 }
+

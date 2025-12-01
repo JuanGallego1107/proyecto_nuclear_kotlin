@@ -1,10 +1,8 @@
 package com.apps_moviles.proyecto_nuclear_kotlin
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Menu
@@ -15,49 +13,40 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
+import com.apps_moviles.proyecto_nuclear_kotlin.viewmodel.ItemViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CategoryScreen(
+    viewModel: ItemViewModel,
     categoryName: String,
     onBack: () -> Unit,
     onOpenMenu: () -> Unit,
-    onProductClick: (Product) -> Unit
+    onProductClick: (Int) -> Unit
 ) {
     val filters = listOf("Todos", "Disponibles", "En negociación")
     var selectedFilter by remember { mutableStateOf("Todos") }
 
-    // LISTADO DE DATOS
-    val allProducts = listOf(
-        Product("Cálculo I - Stewart", "Libros", "Juan P.",
-            "https://images.unsplash.com/photo-1524995997946-a1c2e315a42f", "Disponible"),
+    // Leer userId desde el UserViewModel
+    val userId by viewModel.loggedUserId.collectAsState(initial = null)
 
-        Product("Física Universitaria", "Libros", "Felipe A.",
-            "https://images.unsplash.com/photo-1519682337058-a94d519337bc", "Disponible"),
+    // Cargar items por categoria al abrir la pantalla
+    LaunchedEffect(Unit) {
+        viewModel.loadItemsByCategory(category = categoryName, userId = userId)
+    }
 
-        Product("Uniforme Deportivo", "Uniformes", "Laura M.",
-            "https://images.unsplash.com/photo-1517849845537-4d257902454a", "Disponible"),
-
-        Product("Mochila Universitaria", "Accesorios", "Martín G.",
-            "https://images.unsplash.com/photo-1509114397022-ed747cca3f65", "En negociación"),
-
-        Product("Mouse Gamer Logitech", "Tecnología", "Daniel R.",
-            "https://images.unsplash.com/photo-1587202372775-e229f172b9d8", "Disponible"),
-
-        Product("Chaqueta Azul Talla M", "Ropa", "Carlos F.",
-            "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab", "En negociación")
-    )
+    // Items reales desde Room
+    val items = viewModel.items.collectAsState()
 
     // FILTRO POR CATEGORÍA
-    val categoryFiltered = allProducts.filter {
-        it.category == categoryName || categoryName == "Todos"
-    }
-
-    // FILTRO POR ESTADO
-    val products = categoryFiltered.filter {
-        selectedFilter == "Todos" || it.status == selectedFilter
-    }
+    //val categoryFiltered = allProducts.filter {
+    //    it.category == categoryName || categoryName == "Todos"
+    //}
+//
+    //// FILTRO POR ESTADO
+    //val products = categoryFiltered.filter {
+    //    selectedFilter == "Todos" || it.status == selectedFilter
+    //}
 
     Scaffold(
         topBar = {
@@ -90,7 +79,7 @@ fun CategoryScreen(
             )
         },
         floatingActionButton = {
-            ItemFormFab()
+            ItemFormFab(itemViewModel = viewModel)
         },
         floatingActionButtonPosition = FabPosition.End
     ) { padding ->
@@ -118,15 +107,15 @@ fun CategoryScreen(
             // INFORMACIÓN DE RESULTADOS
             item {
                 Text(
-                    "${products.size} artículos encontrados",
+                    "${items.value.size} artículos encontrados",
                     fontWeight = FontWeight.Medium
                 )
                 Spacer(Modifier.height(16.dp))
             }
 
             // LISTA DE ARTÍCULOS
-            items(products) { item ->
-                ProductCardHome(item, onClick = { onProductClick(item) })
+            items(items.value) { item ->
+                ProductCardHome(item, onClick = { onProductClick(item.item.id) })
                 Spacer(Modifier.height(16.dp))
             }
 

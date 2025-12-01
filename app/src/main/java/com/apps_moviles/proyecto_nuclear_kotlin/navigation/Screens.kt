@@ -6,6 +6,12 @@ import kotlinx.serialization.Serializable
 object Login
 
 @Serializable
+object PublishedItems
+
+@Serializable
+object InterestItems
+
+@Serializable
 data class Home(val name: String)
 
 @Serializable
@@ -13,9 +19,5 @@ data class CategoryRoute(val category: String)
 
 @Serializable
 data class DetailRoute(
-    val name: String,
-    val category: String,
-    val owner: String,
-    val imageUrl: String,
-    val status: String
+    val itemId: Int
 )
