@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModelProvider
 import com.apps_moviles.proyecto_nuclear_kotlin.data.AppDatabase
 import com.apps_moviles.proyecto_nuclear_kotlin.data.InteractionRepository
 import com.apps_moviles.proyecto_nuclear_kotlin.data.ItemRepository
+import com.apps_moviles.proyecto_nuclear_kotlin.data.RatingRepository
 import com.apps_moviles.proyecto_nuclear_kotlin.data.UserPreferences
 import com.apps_moviles.proyecto_nuclear_kotlin.data.UserRepository
 import com.apps_moviles.proyecto_nuclear_kotlin.navigation.NavigationWrapper
@@ -16,6 +17,8 @@ import com.apps_moviles.proyecto_nuclear_kotlin.viewmodel.InteractionViewModel
 import com.apps_moviles.proyecto_nuclear_kotlin.viewmodel.InteractionViewModel.InteractionViewModelFactory
 import com.apps_moviles.proyecto_nuclear_kotlin.viewmodel.ItemViewModel
 import com.apps_moviles.proyecto_nuclear_kotlin.viewmodel.ItemViewModelFactory
+import com.apps_moviles.proyecto_nuclear_kotlin.viewmodel.RatingViewModel
+import com.apps_moviles.proyecto_nuclear_kotlin.viewmodel.RatingViewModelFactory
 import com.apps_moviles.proyecto_nuclear_kotlin.viewmodel.UserViewModel
 import com.apps_moviles.proyecto_nuclear_kotlin.viewmodel.UserViewModelFactory
 
@@ -46,10 +49,15 @@ class MainActivity : ComponentActivity() {
         val interactionFactory = InteractionViewModelFactory(interactionRepository, userPrefs)
         val interactionViewModel = ViewModelProvider(this, interactionFactory)[InteractionViewModel::class.java]
 
+        // Inicializa view model de valoraciones
+        val ratingRepository = RatingRepository(database.ratingDao())
+        val ratingFactory = RatingViewModelFactory(ratingRepository)
+        val ratingViewModel = ViewModelProvider(this, ratingFactory)[RatingViewModel::class.java]
+
         enableEdgeToEdge()
         setContent {
             Proyecto_nuclear_kotlinTheme {
-                NavigationWrapper(userViewModel, itemViewModel, interactionViewModel)
+                NavigationWrapper(userViewModel, itemViewModel, interactionViewModel, ratingViewModel)
             }
         }
     }

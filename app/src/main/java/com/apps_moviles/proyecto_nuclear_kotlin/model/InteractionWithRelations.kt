@@ -14,9 +14,10 @@ data class InteractionWithRelations(
 
     @Relation(
         parentColumn = "item_id",
-        entityColumn = "id"
+        entityColumn = "id",
+        entity = Item::class
     )
-    val item: Item,
+    val item: ItemRatingRelations,
 
     @Relation(
         parentColumn = "interaction_state_id",

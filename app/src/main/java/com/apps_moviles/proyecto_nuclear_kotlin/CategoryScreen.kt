@@ -78,9 +78,9 @@ fun CategoryScreen(
                 )
             )
         },
-        floatingActionButton = {
-            ItemFormFab(itemViewModel = viewModel)
-        },
+        //floatingActionButton = {
+        //    ItemFormFab(itemViewModel = viewModel)
+        //},
         floatingActionButtonPosition = FabPosition.End
     ) { padding ->
 
@@ -91,18 +91,18 @@ fun CategoryScreen(
         ) {
 
             // CHIPS DE FILTRO
-            item {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    filters.forEach { filter ->
-                        FilterChip(
-                            selected = selectedFilter == filter,
-                            onClick = { selectedFilter = filter },
-                            label = { Text(filter) }
-                        )
-                    }
-                }
-                Spacer(Modifier.height(16.dp))
-            }
+            //item {
+            //    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            //        filters.forEach { filter ->
+            //            FilterChip(
+            //                selected = selectedFilter == filter,
+            //                onClick = { selectedFilter = filter },
+            //                label = { Text(filter) }
+            //            )
+            //        }
+            //    }
+            //    Spacer(Modifier.height(16.dp))
+            //}
 
             // INFORMACIÓN DE RESULTADOS
             item {

@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.apps_moviles.proyecto_nuclear_kotlin.data.ItemRepository
 import com.apps_moviles.proyecto_nuclear_kotlin.data.ItemWithRelations
 import com.apps_moviles.proyecto_nuclear_kotlin.data.UserPreferences
+import com.apps_moviles.proyecto_nuclear_kotlin.model.InsertItemEnum
 import com.apps_moviles.proyecto_nuclear_kotlin.model.Item
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -51,12 +52,22 @@ class ItemViewModel(private val repository: ItemRepository, private val prefs: U
         }
     }
 
-    fun insert(item: Item) {
+    fun insert(item: Item, source: InsertItemEnum) {
         viewModelScope.launch {
             repository.insert(item)
-            loadItems(loggedUserId.value ?: 2)
+
+            when (source) {
+                InsertItemEnum.ALL_ITEMS -> {
+                    loadItems(loggedUserId.value ?: 2)
+                }
+                InsertItemEnum.USER_ITEMS -> {
+                    loadItemsByUser(loggedUserId.value ?: 2)
+                }
+                InsertItemEnum.CATEGORY_ITEMS -> {}
+            }
         }
     }
+
 
     fun update(item: Item) {
         viewModelScope.launch {

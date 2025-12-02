@@ -1,5 +1,6 @@
 package com.apps_moviles.proyecto_nuclear_kotlin
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -18,14 +19,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.apps_moviles.proyecto_nuclear_kotlin.model.InteractionWithRelations
+import com.apps_moviles.proyecto_nuclear_kotlin.model.Rating
 import com.apps_moviles.proyecto_nuclear_kotlin.viewmodel.InteractionViewModel
+import com.apps_moviles.proyecto_nuclear_kotlin.viewmodel.RatingViewModel
 import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InterestItemsScreen(
     interactionViewModel: InteractionViewModel,
+    ratingViewModel: RatingViewModel,
     onBack: () -> Unit,
     onInteractionClick: (Int) -> Unit
 ) {
@@ -45,6 +50,9 @@ fun InterestItemsScreen(
         .distinct()
 
     var selectedEstado by remember { mutableStateOf("Todos") }
+
+    var showRatingDialog by remember { mutableStateOf(false) }
+    var selectedItemId by remember { mutableStateOf<Int?>(null) }
 
     Scaffold(
         topBar = {
@@ -130,10 +138,36 @@ fun InterestItemsScreen(
 
                         InteractionCard(
                             data = interactionWithRelations,
-                            onClick = { onInteractionClick(interactionWithRelations.interaction.id) }
+                            onClick = { onInteractionClick(interactionWithRelations.interaction.id) },
+                            onRateClick = {
+                                selectedItemId = interactionWithRelations.item.item.id
+                                showRatingDialog = true
+                            }
                         )
                     }
                 }
+            }
+
+            if (showRatingDialog && selectedItemId != null) {
+                RatingDialog(
+                    onDismiss = { showRatingDialog = false },
+                    onSubmit = { rating, comment ->
+
+                        ratingViewModel.insert(
+                            Rating(
+                                itemId = selectedItemId!!,   // id del item
+                                userId = userId ?: return@RatingDialog,
+                                rating = rating,
+                                comments = comment,
+                                ratingDate = Date().toString()
+                            )
+                        )
+                        // Recarga la lista de interacciones
+                        userId?.let { interactionViewModel.loadByUserId(it) }
+
+                        showRatingDialog = false
+                    }
+                )
             }
         }
     }
@@ -150,6 +184,8 @@ fun InteractionCard(
         "Sin completar" -> Color(0xFFF4B400)
         else -> Color.LightGray
     }
+
+    val rating = data.item.ratings.firstOrNull()
 
     Card(
         modifier = Modifier
@@ -173,7 +209,7 @@ fun InteractionCard(
 
                 // Imagen a la izquierda
                 AsyncImage(
-                    model = data.item.photoPath,
+                    model = data.item.item.photoPath,
                     contentDescription = "product image",
                     modifier = Modifier
                         .size(70.dp)
@@ -188,7 +224,7 @@ fun InteractionCard(
 
                     // TÍTULO DEL ITEM
                     Text(
-                        text = data.item.title,
+                        text = data.item.item.title,
                         style = MaterialTheme.typography.titleMedium
                     )
 
@@ -222,7 +258,7 @@ fun InteractionCard(
             // ------------------------------------------------------
             //  BOTÓN CALIFICAR SOLO SI EL ESTADO ES "Completado"
             // ------------------------------------------------------
-            if (data.state.name == "Completado") {
+            if (data.state.name == "Completado" && rating == null) {
 
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -247,8 +283,130 @@ fun InteractionCard(
                 }
 
             }
+
+            // ------------------------------------------------------------------
+            // MOSTRAR CALIFICACIÓN SI YA EXISTE
+            // ------------------------------------------------------------------
+            if (data.state.name == "Completado"  && rating != null) {
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(4.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+
+                        // ⭐⭐ ESTRELLAS DE CALIFICACIÓN ⭐⭐
+                        Row {
+                            repeat(5) { index ->
+                                Icon(
+                                    imageVector = Icons.Default.Star,
+                                    contentDescription = null,
+                                    tint = if (index < rating.rating) Color(0xFFFFC107) else Color.Gray,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Comentario
+                        Text(
+                            text = rating.comments?.takeIf { it.isNotBlank() } ?: "Sin comentarios",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Text(
+                            text = "Calificado el: ${formatDate(rating.ratingDate)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Gray
+                        )
+                    }
+                }
+            }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun RatingDialog(
+    onDismiss: () -> Unit,
+    onSubmit: (Int, String) -> Unit
+) {
+    var rating by remember { mutableIntStateOf(0) }
+    var comment by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            Button(
+                onClick = { onSubmit(rating, comment) },
+                enabled = rating > 0,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Enviar")
+            }
+        },
+        title = { Text("Calificar artículo") },
+        text = {
+            Column {
+
+                // -----------------------
+                // ⭐ Seleccionar estrellas
+                // -----------------------
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    (1..5).forEach { star ->
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = "Star $star",
+                            tint = if (star <= rating) Color(0xFFFFC107) else Color.Gray,
+                            modifier = Modifier
+                                .size(40.dp)
+                                .padding(4.dp)
+                                .clickable { rating = star }
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // -----------------------
+                // 📝 Comentario
+                // -----------------------
+                OutlinedTextField(
+                    value = comment,
+                    onValueChange = { comment = it },
+                    label = { Text("Comentario (opcional)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3,
+                    maxLines = 5
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar")
+            }
+        }
+    )
 }
 
 

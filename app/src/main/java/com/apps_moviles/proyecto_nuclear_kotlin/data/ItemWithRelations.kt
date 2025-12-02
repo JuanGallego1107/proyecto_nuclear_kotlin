@@ -8,7 +8,9 @@ import com.apps_moviles.proyecto_nuclear_kotlin.model.Item
 import com.apps_moviles.proyecto_nuclear_kotlin.model.ItemInteractionRelations
 import com.apps_moviles.proyecto_nuclear_kotlin.model.ItemState
 import com.apps_moviles.proyecto_nuclear_kotlin.model.PublicationType
+import com.apps_moviles.proyecto_nuclear_kotlin.model.Rating
 import com.apps_moviles.proyecto_nuclear_kotlin.model.User
+import com.apps_moviles.proyecto_nuclear_kotlin.model.UserWithRelations
 
 data class ItemWithRelations(
 
@@ -17,9 +19,10 @@ data class ItemWithRelations(
 
     @Relation(
         parentColumn = "user_id",
-        entityColumn = "id"
+        entityColumn = "id",
+        entity = User::class
     )
-    val user: User,
+    val user: UserWithRelations,
 
     @Relation(
         parentColumn = "publication_type_id",
@@ -38,5 +41,12 @@ data class ItemWithRelations(
         entityColumn = "item_id",
         entity = Interaction::class
     )
-    val interactions: List<ItemInteractionRelations> = emptyList()
+    val interactions: List<ItemInteractionRelations> = emptyList(),
+
+    @Relation(
+        parentColumn = "id",
+        entityColumn = "item_id",
+        entity = Rating::class
+    )
+    val ratings: List<Rating> = emptyList()
 )

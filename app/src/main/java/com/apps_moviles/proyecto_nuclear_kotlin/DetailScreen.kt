@@ -3,7 +3,9 @@ package com.apps_moviles.proyecto_nuclear_kotlin
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -21,9 +23,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import com.apps_moviles.proyecto_nuclear_kotlin.model.Interaction
 import com.apps_moviles.proyecto_nuclear_kotlin.model.ItemInteractionRelations
 import com.apps_moviles.proyecto_nuclear_kotlin.viewmodel.InteractionViewModel
@@ -74,6 +78,7 @@ fun DetailScreen(
     val user = itemWithRelations!!.user
     val state = itemWithRelations!!.state
     val interactions = itemWithRelations!!.interactions
+    val ratings = itemWithRelations!!.ratings
     val publicationType = itemWithRelations!!.publicationType
 
     fun hasUserInteracted(userId: Int?, interactions: List<ItemInteractionRelations>): Boolean {
@@ -87,6 +92,8 @@ fun DetailScreen(
     val userHasInteracted = hasUserInteracted(userId, interactions)
 
     //Log.i("USUARIO", userHasInteracted.toString());
+
+    var showImageDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -135,7 +142,8 @@ fun DetailScreen(
                         modifier = Modifier
                             .fillMaxSize()
                             .clip(RoundedCornerShape(16.dp))
-                            .background(Color.LightGray),
+                            .background(Color.LightGray)
+                            .clickable { showImageDialog = true },
                         contentScale = ContentScale.Crop
                     )
 
@@ -235,20 +243,52 @@ fun DetailScreen(
 
                         Spacer(Modifier.width(14.dp))
 
-                        Column {
+                        // 👉 Empuja el rating a la derecha
+                        Column(
+                            modifier = Modifier.weight(1f)
+                        ) {
                             Text(
-                                user.fullName,
+                                user.user.fullName,
                                 fontWeight = FontWeight.Bold
                             )
-                            Text("Email: ${user.email}")
-                            // Text("Tipo publicación: ${publicationType.name}")
+                            Text(user.user.email)
+                        }
+
+                        //  CÁLCULO DEL PROMEDIO DE RATINGS
+                        val averageRating = user.items
+                            .mapNotNull { it.ratings.firstOrNull()?.rating }
+                            .average()
+
+                        val displayRating = if (averageRating.isNaN()) null else averageRating
+
+                        //  MOSTRAR RATING SI EXISTE
+                        if (displayRating != null) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+
+                                Text(
+                                    text = String.format("%.1f", displayRating),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color.Gray,
+                                    fontWeight = FontWeight.Bold
+                                )
+
+                                Spacer(Modifier.width(4.dp))
+
+                                Icon(
+                                    imageVector = Icons.Default.Star,
+                                    contentDescription = "rating",
+                                    tint = Color(0xFFFFC107),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
                         }
                     }
                 }
+
             }
 
             // Listado de interacciones activas para el oferente
-            if(user.id == userId) {
+            if(user.user.id == userId) {
                 item {
                     Text(
                         text = "Personas interesadas en tú articulo",
@@ -267,93 +307,148 @@ fun DetailScreen(
                             .padding(horizontal = 16.dp),
                         elevation = CardDefaults.cardElevation(4.dp)
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .padding(12.dp)
-                                .fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // Icono placeholder usuario
-                            Icon(
-                                imageVector = Icons.Default.Person,
-                                contentDescription = "Usuario",
-                                tint = Color.Gray,
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
-                            )
+                        Column(modifier = Modifier.padding(12.dp)) {
 
-                            Spacer(modifier = Modifier.width(12.dp))
-
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = interaction.user.fullName,
-                                    style = MaterialTheme.typography.titleSmall
+                            // ---------------------------
+                            // ROW PRINCIPAL
+                            // ---------------------------
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // Icono placeholder usuario
+                                Icon(
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = "Usuario",
+                                    tint = Color.Gray,
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .background(Color.LightGray, shape = RoundedCornerShape(8.dp))
                                 )
 
-                                Spacer(modifier = Modifier.height(4.dp))
+                                Spacer(modifier = Modifier.width(12.dp))
 
-                                Text(
-                                    text = interaction.user.email,
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = interaction.user.fullName,
+                                        style = MaterialTheme.typography.titleSmall
+                                    )
 
-                                Spacer(modifier = Modifier.height(4.dp))
+                                    Spacer(modifier = Modifier.height(4.dp))
 
-                                // Chip para el estado con color
-                                val stateColor = when (interaction.state.name) {
-                                    "Completado" -> Color(0xFF00913f)
-                                    "Sin completar" -> Color(0xFFF4B400)
-                                    else ->  Color.LightGray
+                                    Text(
+                                        text = interaction.user.email,
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+
+                                    Spacer(modifier = Modifier.height(4.dp))
+
+                                    // Chip estado
+                                    val stateColor = when (interaction.state.name) {
+                                        "Completado" -> Color(0xFF00913f)
+                                        "Sin completar" -> Color(0xFFF4B400)
+                                        else -> Color.LightGray
+                                    }
+
+                                    AssistChip(
+                                        onClick = {},
+                                        label = { Text(interaction.state.name) },
+                                        colors = AssistChipDefaults.assistChipColors(
+                                            containerColor = stateColor,
+                                            labelColor = Color.White
+                                        )
+                                    )
+
+                                    Spacer(modifier = Modifier.height(4.dp))
+
+                                    Text(
+                                        text = interaction.interaction.comment ?: "Sin comentarios",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        maxLines = 2
+                                    )
+
+                                    Text(
+                                        text = "Fecha de interés: ${
+                                            formatDateString(interaction.interaction.interactionDate)
+                                        }",
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
                                 }
 
-                                AssistChip(
-                                    onClick = {},
-                                    label = { Text(interaction.state.name) },
-                                    colors = AssistChipDefaults.assistChipColors(
-                                        containerColor = stateColor,
-                                        labelColor = Color.White
-                                    )
-                                )
-
-                                Spacer(modifier = Modifier.height(4.dp))
-
-                                Text(
-                                    text = interaction.interaction.comment ?: "Sin comentarios",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    maxLines = 2
-                                )
-
-                                Text(
-                                    text = "Fecha de interés: ${formatDateString(interaction.interaction.interactionDate)}",
-                                    style = MaterialTheme.typography.bodySmall
-                                )
+                                // Botón check si está "En espera"
+                                if (interaction.state.name == "En espera") {
+                                    IconButton(
+                                        onClick = {
+                                            showConfirmDialog = true to interaction
+                                        }
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Check,
+                                            contentDescription = "Confirmar",
+                                            tint = Color(0xFF003D6A)
+                                        )
+                                    }
+                                }
                             }
 
-                            // Trailing icon: check button
-                            if(interaction.state.name == "En espera") {
-                                IconButton(
-                                    onClick = {
-                                        showConfirmDialog = true to interaction
-                                    }
+                            // -------------------------------------------------------------
+                            // SECCIÓN DE RATING (solo si está completado y tiene rating)
+                            // -------------------------------------------------------------
+                            val rating = ratings.firstOrNull()
+
+                            if (interaction.state.name == "Completado" && rating != null) {
+
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth(),
+                                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF9F9F9)),
+                                    elevation = CardDefaults.cardElevation(2.dp),
+                                    shape = RoundedCornerShape(10.dp)
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Check,
-                                        contentDescription = "Confirmar",
-                                        tint = Color(0xFF003D6A)
-                                    )
+
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(14.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
+
+                                        // ⭐ Estrellas
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            repeat(5) { index ->
+                                                Icon(
+                                                    imageVector = Icons.Default.Star,
+                                                    contentDescription = null,
+                                                    tint = if (index < rating.rating) Color(0xFFFFC107) else Color.Gray,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.height(6.dp))
+
+                                        // Comentario
+                                        Text(
+                                            text = rating.comments?.takeIf { it.isNotBlank() } ?: "Sin comentarios",
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
                 }
+
             }
 
             item { Spacer(Modifier.height(80.dp)) }
         }
 
         // Botón de solicitar
-        if(user.id != userId && !userHasInteracted) {
+        if(user.user.id != userId && !userHasInteracted) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -515,6 +610,40 @@ fun DetailScreen(
                 }
             )
         }
+
+        if (showImageDialog) {
+            Dialog(
+                onDismissRequest = { showImageDialog = false }
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Transparent)
+                        .clickable { showImageDialog = false }
+                        .padding(24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .wrapContentHeight()
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color.Black)
+                    ) {
+                        AsyncImage(
+                            model = item.photoPath,
+                            contentDescription = "zoomed image",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .wrapContentHeight(),
+                            contentScale = ContentScale.Fit
+                        )
+                    }
+                }
+            }
+        }
+
     }
 }
 

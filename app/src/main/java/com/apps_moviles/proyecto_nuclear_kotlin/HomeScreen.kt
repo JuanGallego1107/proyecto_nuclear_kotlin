@@ -2,7 +2,9 @@ package com.apps_moviles.proyecto_nuclear_kotlin
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -14,22 +16,33 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.apps_moviles.proyecto_nuclear_kotlin.data.ItemWithRelations
+import com.apps_moviles.proyecto_nuclear_kotlin.model.InsertItemEnum
 import com.apps_moviles.proyecto_nuclear_kotlin.viewmodel.ItemViewModel
 import kotlinx.coroutines.launch
 
@@ -57,6 +70,17 @@ fun HomeScreen(
 
     // Items reales desde Room
     val items = viewModel.items.collectAsState()
+
+    // Estado local para el texto del buscador
+    var searchText by remember { mutableStateOf("") }
+
+    // Filtrar en la vista
+    val filteredItems = items.value.filter { item ->
+        item.item.title.contains(searchText, ignoreCase = true)
+    }
+
+    val focusManager = LocalFocusManager.current
+    val focusRequester = remember { FocusRequester() }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -159,9 +183,14 @@ fun HomeScreen(
                 )
             },
             floatingActionButton = {
-                ItemFormFab(itemViewModel = viewModel)
+                ItemFormFab(itemViewModel = viewModel, source = InsertItemEnum.ALL_ITEMS)
             },
-            floatingActionButtonPosition = FabPosition.End
+            floatingActionButtonPosition = FabPosition.End,
+            modifier = Modifier.pointerInput(Unit) {
+                detectTapGestures {
+                    focusManager.clearFocus()
+                }
+            }
         ) { paddingValues ->
 
             LazyColumn(
@@ -172,17 +201,31 @@ fun HomeScreen(
 
                 // BUSCADOR
                 item {
+
                     OutlinedTextField(
-                        value = "",
-                        onValueChange = {},
-                        placeholder = { Text("Buscar artículos...") },
-                        leadingIcon = {
-                            Icon(Icons.Default.Search, contentDescription = "search")
+                        value = searchText,
+                        onValueChange = { searchText = it },
+                        placeholder = {
+                            Text(
+                                "Buscar artículos...",
+                                color = Color.Gray
+                            )
                         },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = "Buscar",
+                                tint = Color.Gray
+                            )
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(14.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
+                            .height(52.dp)
+                            .focusRequester(focusRequester)
                     )
+
 
                     Spacer(Modifier.height(20.dp))
                 }
@@ -220,7 +263,7 @@ fun HomeScreen(
                     Spacer(Modifier.height(16.dp))
                 }
 
-                items(items.value) { item ->
+                items(filteredItems) { item ->
                     ProductCardHome(item, onClick = { onItemClick(item.item.id) })
                     Spacer(Modifier.height(16.dp))
                 }
@@ -265,33 +308,104 @@ fun DrawerItem(
 
 
 @Composable
-fun ProductCardHome(item: ItemWithRelations, onClick: () -> Unit) {
+fun ProductCardHome(
+    item: ItemWithRelations,
+    onClick: () -> Unit,
+    loggedUserId: Int? = null
+) {
+    val showRating = item.user.user.id == loggedUserId
+    val rating = item.ratings.firstOrNull()
+
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
-        Row(modifier = Modifier.padding(12.dp)) {
+        Row(
+            modifier = Modifier
+                .padding(12.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
 
+            // -------------------------------
+            // 📌 Imagen
+            // -------------------------------
             AsyncImage(
                 model = item.item.photoPath,
                 contentDescription = "product image",
                 modifier = Modifier
-                    .size(70.dp)
-                    .clip(RoundedCornerShape(10.dp))
+                    .size(80.dp)
+                    .clip(RoundedCornerShape(12.dp))
                     .background(Color.LightGray)
             )
 
             Spacer(Modifier.width(12.dp))
 
-            Column(modifier = Modifier.weight(1f)) {
-                Text(item.item.title, fontWeight = FontWeight.Bold)
-                Text(item.item.category, color = Color.Gray)
-                Text(item.user.fullName, color = Color.Gray)
+            // -------------------------------
+            // 📌 Información principal
+            // -------------------------------
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+            ) {
+                Text(
+                    text = item.item.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                Text(
+                    text = item.item.category,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                Text(
+                    text = item.user.user.fullName,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
             }
 
-            StatusChip(item.state.name)
+            // -------------------------------
+            // 📌 Estado + Rating (si aplica)
+            // -------------------------------
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+
+                StatusChip(item.state.name)
+
+                if (showRating && rating != null && item.state.name == "Entregado") {
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+
+                        Text(
+                            text = rating.rating.toString(),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.Black
+                        )
+
+                        Spacer(modifier = Modifier.width(2.dp))
+
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = "rating",
+                            tint = Color(0xFFFFC107),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+            }
         }
     }
 }

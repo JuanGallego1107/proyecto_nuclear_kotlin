@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.apps_moviles.proyecto_nuclear_kotlin.model.InsertItemEnum
 import com.apps_moviles.proyecto_nuclear_kotlin.viewmodel.ItemViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -46,7 +47,7 @@ fun PublishedItemsScreen(
             )
         },
         floatingActionButton = {
-            ItemFormFab(itemViewModel = viewModel)
+            ItemFormFab(itemViewModel = viewModel,  source = InsertItemEnum.USER_ITEMS)
         }
     ) { padding ->
 
@@ -118,9 +119,13 @@ fun PublishedItemsScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(filteredItems) { item ->
-                        ProductCardHome(item) {
-                            onItemClick(item.item.id)
-                        }
+                        ProductCardHome(
+                            item = item,
+                            onClick = {
+                                onItemClick(item.item.id)
+                            },
+                            loggedUserId = userId
+                        )
                     }
                 }
             }

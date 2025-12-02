@@ -9,13 +9,15 @@ import com.apps_moviles.proyecto_nuclear_kotlin.*
 import androidx.compose.runtime.*
 import com.apps_moviles.proyecto_nuclear_kotlin.viewmodel.InteractionViewModel
 import com.apps_moviles.proyecto_nuclear_kotlin.viewmodel.ItemViewModel
+import com.apps_moviles.proyecto_nuclear_kotlin.viewmodel.RatingViewModel
 import com.apps_moviles.proyecto_nuclear_kotlin.viewmodel.UserViewModel
 
 @Composable
 fun NavigationWrapper(
     userViewModel: UserViewModel,
     itemViewModel: ItemViewModel,
-    interactionViewModel: InteractionViewModel
+    interactionViewModel: InteractionViewModel,
+    ratingViewModel: RatingViewModel
 ) {
     val navController = rememberNavController()
 
@@ -104,6 +106,7 @@ fun NavigationWrapper(
         composable<InterestItems> {
             InterestItemsScreen(
                 interactionViewModel = interactionViewModel,
+                ratingViewModel = ratingViewModel,
                 onBack = { navController.popBackStack() },
                 onInteractionClick = { },
             )

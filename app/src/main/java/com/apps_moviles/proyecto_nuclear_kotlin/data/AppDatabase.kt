@@ -11,15 +11,16 @@ import com.apps_moviles.proyecto_nuclear_kotlin.model.Item
 import com.apps_moviles.proyecto_nuclear_kotlin.model.ItemState
 import com.apps_moviles.proyecto_nuclear_kotlin.model.ItemWithInteractionsView
 import com.apps_moviles.proyecto_nuclear_kotlin.model.PublicationType
+import com.apps_moviles.proyecto_nuclear_kotlin.model.Rating
 import com.apps_moviles.proyecto_nuclear_kotlin.model.User
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 @Database(
-    entities = [User::class, ItemState::class, PublicationType::class, Item::class, InteractionState::class, Interaction::class],
+    entities = [User::class, ItemState::class, PublicationType::class, Item::class, InteractionState::class, Interaction::class, Rating::class],
     // views = [ItemWithInteractionsView::class],
-    version = 6,
+    version = 7,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -30,6 +31,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun itemDao(): ItemDao
     abstract fun interactionsStateDao(): InteractionStateDao
     abstract fun interactionDao(): InteractionDao
+    abstract fun ratingDao(): RatingDao
 
     companion object {
         @Volatile

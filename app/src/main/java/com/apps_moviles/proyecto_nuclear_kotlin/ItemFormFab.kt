@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
+import com.apps_moviles.proyecto_nuclear_kotlin.model.InsertItemEnum
 import com.apps_moviles.proyecto_nuclear_kotlin.model.Item
 import com.apps_moviles.proyecto_nuclear_kotlin.viewmodel.ItemViewModel
 import java.io.File
@@ -37,7 +38,8 @@ import java.util.Date
 // ------------------------------------------------------------
 @Composable
 fun ItemFormFab(
-    itemViewModel: ItemViewModel
+    itemViewModel: ItemViewModel,
+    source: InsertItemEnum
 ) {
     var showForm by remember { mutableStateOf(false) }
 
@@ -52,7 +54,8 @@ fun ItemFormFab(
     if (showForm) {
         FullScreenPublishModal(
             itemViewModel = itemViewModel,
-            onClose = { showForm = false }
+            onClose = { showForm = false },
+            source = source
         )
     }
 }
@@ -63,7 +66,7 @@ fun ItemFormFab(
 // ------------------------------------------------------------
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FullScreenPublishModal(itemViewModel: ItemViewModel, onClose: () -> Unit) {
+fun FullScreenPublishModal(itemViewModel: ItemViewModel, onClose: () -> Unit, source: InsertItemEnum) {
 
     val context = LocalContext.current
 
@@ -212,7 +215,8 @@ fun FullScreenPublishModal(itemViewModel: ItemViewModel, onClose: () -> Unit) {
                                     publicationTypeId = publicationType ?: 1 ,
                                     publicationDate = Date().toString(),
                                     address = address
-                                )
+                                ),
+                                source = source
                             )
 
                             showSuccess = true
